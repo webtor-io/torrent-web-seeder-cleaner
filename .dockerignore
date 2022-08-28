@@ -1,0 +1,12 @@
+.git
+.github
+.vscode
+.dockerignore
+*Dockerfile*
+up.sh
+README.md
+Makefile
+LICENSE
+torrent-web-seeder-cleaner
+__debug_bin
+.DS_Store
