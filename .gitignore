@@ -17,3 +17,5 @@ tmp
 .DS_Store
 __debug_bin
 torrent-web-seeder-cleaner
+
+data*

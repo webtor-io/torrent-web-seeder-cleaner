@@ -11,31 +11,8 @@ import (
 	"github.com/pkg/errors"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 	"golang.org/x/sys/unix"
 )
-
-const (
-	CLEANER_KEEP_FREE_FLAG = "keep-free"
-	DATA_DIR_FLAG          = "data-dir"
-)
-
-func RegisterCleanerFlags(f []cli.Flag) []cli.Flag {
-	return append(f,
-		cli.StringFlag{
-			Name:   CLEANER_KEEP_FREE_FLAG,
-			Usage:  "keep free",
-			Value:  "35%",
-			EnvVar: "CLEANER_KEEP_FREE",
-		},
-		cli.StringFlag{
-			Name:   DATA_DIR_FLAG,
-			Usage:  "data dir",
-			Value:  os.TempDir(),
-			EnvVar: "DATA_DIR",
-		},
-	)
-}
 
 type Cleaner struct {
 	p        string
@@ -49,10 +26,10 @@ type StoreStat struct {
 	hash  string
 }
 
-func NewCleaner(c *cli.Context) *Cleaner {
+func NewCleaner(p string, keep string) *Cleaner {
 	return &Cleaner{
-		p:    c.String(DATA_DIR_FLAG),
-		keep: c.String(CLEANER_KEEP_FREE_FLAG),
+		p:    p,
+		keep: keep,
 	}
 }
 
@@ -67,7 +44,7 @@ func (s *Cleaner) clean() error {
 	total := s.getTotalSpace()
 	keep := uint64(float64(total) * p)
 
-	log.Infof("start cleaning total =%.2fG free=%.2fG keep=%.2fG", float64(total)/1024/1024/1024, float64(free)/1024/1024/1024, float64(keep)/1024/1024/1024)
+	log.Infof("start cleaning total=%.2fG free=%.2fG keep=%.2fG", float64(total)/1024/1024/1024, float64(free)/1024/1024/1024, float64(keep)/1024/1024/1024)
 
 	if free > keep {
 		log.Info("no need to clean")
@@ -144,7 +121,7 @@ func (s *Cleaner) getStats() ([]StoreStat, error) {
 }
 
 func (s *Cleaner) Serve() error {
-	log.Info("serving Cleaner")
+	log.Infof("serving Cleaner for %v", s.p)
 	s.t = time.NewTicker(30 * time.Second)
 	for ; true; <-s.t.C {
 		if !s.cleaning {

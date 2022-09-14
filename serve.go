@@ -28,8 +28,8 @@ func serve(c *cli.Context) error {
 	probe := cs.NewProbe(c)
 	defer probe.Close()
 
-	// Setting Cleaner
-	cleaner := s.NewCleaner(c)
+	// Setting MultiCleaner
+	cleaner := s.NewMultiCleaner(c)
 	defer cleaner.Close()
 
 	// Setting Serve
