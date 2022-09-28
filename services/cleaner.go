@@ -19,6 +19,7 @@ type Cleaner struct {
 	t        *time.Ticker
 	cleaning bool
 	keep     string
+	free     string
 }
 
 type StoreStat struct {
@@ -26,24 +27,37 @@ type StoreStat struct {
 	hash  string
 }
 
-func NewCleaner(p string, keep string) *Cleaner {
+func NewCleaner(p string, keep string, free string) *Cleaner {
 	return &Cleaner{
 		p:    p,
 		keep: keep,
+		free: free,
 	}
 }
 
-func (s *Cleaner) clean() error {
-	t := strings.TrimRight(s.keep, "%")
+func (s *Cleaner) getPercent(v string) (float64, error) {
+	t := strings.TrimRight(v, "%")
 	tt, err := strconv.Atoi(t)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse percent value %v", t)
+		return 0, errors.Wrapf(err, "failed to parse percent value %v", t)
 	}
 	p := float64(tt) / 100
+	return p, nil
+}
+
+func (s *Cleaner) clean() error {
 	free := s.getFreeSpace()
 	total := s.getTotalSpace()
+	p, err := s.getPercent(s.keep)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse keep")
+	}
 	keep := uint64(float64(total) * p)
-
+	p, err = s.getPercent(s.free)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse free")
+	}
+	needToFreeUp := uint64(float64(total) * p)
 	log.Infof("start cleaning total=%.2fG free=%.2fG keep=%.2fG", float64(total)/1024/1024/1024, float64(free)/1024/1024/1024, float64(keep)/1024/1024/1024)
 
 	if free > keep {
@@ -61,7 +75,7 @@ func (s *Cleaner) clean() error {
 			return err
 		}
 		free := s.getFreeSpace()
-		if free > keep {
+		if free > needToFreeUp {
 			return nil
 		}
 	}
@@ -122,7 +136,7 @@ func (s *Cleaner) getStats() ([]StoreStat, error) {
 
 func (s *Cleaner) Serve() error {
 	log.Infof("serving Cleaner for %v", s.p)
-	s.t = time.NewTicker(30 * time.Second)
+	s.t = time.NewTicker(5 * time.Minute)
 	for ; true; <-s.t.C {
 		if !s.cleaning {
 			s.cleaning = true

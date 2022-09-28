@@ -8,6 +8,7 @@ import (
 
 const (
 	CLEANER_KEEP_FREE_FLAG = "keep-free"
+	CLEANER_FREE_FLAG      = "free"
 	DATA_DIR_FLAG          = "data-dir"
 )
 
@@ -16,8 +17,14 @@ func RegisterCleanerFlags(f []cli.Flag) []cli.Flag {
 		cli.StringFlag{
 			Name:   CLEANER_KEEP_FREE_FLAG,
 			Usage:  "keep free",
-			Value:  "35%",
+			Value:  "25%",
 			EnvVar: "CLEANER_KEEP_FREE",
+		},
+		cli.StringFlag{
+			Name:   CLEANER_FREE_FLAG,
+			Usage:  "free",
+			Value:  "35%",
+			EnvVar: "CLEANER_FREE",
 		},
 		cli.StringFlag{
 			Name:   DATA_DIR_FLAG,

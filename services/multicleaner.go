@@ -15,6 +15,7 @@ import (
 type MultiCleaner struct {
 	p        string
 	keep     string
+	free     string
 	cleaners []*Cleaner
 }
 
@@ -22,6 +23,7 @@ func NewMultiCleaner(c *cli.Context) *MultiCleaner {
 	return &MultiCleaner{
 		p:        c.String(DATA_DIR_FLAG),
 		keep:     c.String(CLEANER_KEEP_FREE_FLAG),
+		free:     c.String(CLEANER_FREE_FLAG),
 		cleaners: []*Cleaner{},
 	}
 }
@@ -44,10 +46,10 @@ func (s *MultiCleaner) Serve() error {
 			}
 		}
 		for _, d := range dirs {
-			s.cleaners = append(s.cleaners, NewCleaner(dir+"/"+d, s.keep))
+			s.cleaners = append(s.cleaners, NewCleaner(dir+"/"+d, s.keep, s.free))
 		}
 	} else {
-		s.cleaners = append(s.cleaners, NewCleaner(s.p, s.keep))
+		s.cleaners = append(s.cleaners, NewCleaner(s.p, s.keep, s.free))
 	}
 	if len(s.cleaners) == 0 {
 		return errors.Errorf("no cleaners for %v", s.p)
