@@ -3,6 +3,7 @@ module github.com/webtor-io/torrent-web-seeder-cleaner
 go 1.18
 
 require (
+	code.cloudfoundry.org/bytefmt v0.0.0-20211005130812-5bb3c17173e5 // indirect
 	github.com/aws/aws-sdk-go v1.36.28 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/go-pg/migrations/v8 v8.1.0 // indirect

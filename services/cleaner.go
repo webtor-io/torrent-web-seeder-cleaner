@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"code.cloudfoundry.org/bytefmt"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -35,29 +36,35 @@ func NewCleaner(p string, keep string, free string) *Cleaner {
 	}
 }
 
-func (s *Cleaner) getPercent(v string) (float64, error) {
-	t := strings.TrimRight(v, "%")
-	tt, err := strconv.Atoi(t)
-	if err != nil {
-		return 0, errors.Wrapf(err, "failed to parse percent value %v", t)
+func (s *Cleaner) getKeep(v string, total uint64) (keep uint64, err error) {
+	if strings.HasSuffix(v, "%") {
+		t := strings.TrimRight(v, "%")
+		tt, err := strconv.Atoi(t)
+		if err != nil {
+			return 0, errors.Wrapf(err, "failed to parse percent value %v", t)
+		}
+		p := float64(tt) / 100
+		keep = uint64(float64(total) * p)
+	} else {
+		keep, err = bytefmt.ToBytes(v)
+		if err != nil {
+			return 0, errors.Errorf("failed to parse byte value %v", v)
+		}
 	}
-	p := float64(tt) / 100
-	return p, nil
+	return keep, nil
 }
 
 func (s *Cleaner) clean() error {
 	free := s.getFreeSpace()
 	total := s.getTotalSpace()
-	p, err := s.getPercent(s.keep)
+	keep, err := s.getKeep(s.keep, total)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse keep")
 	}
-	keep := uint64(float64(total) * p)
-	p, err = s.getPercent(s.free)
+	needToFreeUp, err := s.getKeep(s.free, total)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse free")
 	}
-	needToFreeUp := uint64(float64(total) * p)
 	log.Infof("start cleaning total=%.2fG free=%.2fG keep=%.2fG", float64(total)/1024/1024/1024, float64(free)/1024/1024/1024, float64(keep)/1024/1024/1024)
 
 	if free > keep {
