@@ -1,7 +1,7 @@
 package services
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 
@@ -21,9 +21,9 @@ type MultiCleaner struct {
 
 func NewMultiCleaner(c *cli.Context) *MultiCleaner {
 	return &MultiCleaner{
-		p:        c.String(DATA_DIR_FLAG),
-		keep:     c.String(CLEANER_KEEP_FREE_FLAG),
-		free:     c.String(CLEANER_FREE_FLAG),
+		p:        c.String(DataDirFlag),
+		keep:     c.String(CleanerKeepFreeFlag),
+		free:     c.String(CleanerFreeFlag),
 		cleaners: []*Cleaner{},
 	}
 }
@@ -35,11 +35,11 @@ func (s *MultiCleaner) Serve() error {
 		if dir == "" {
 			dir = "."
 		}
-		files, err := ioutil.ReadDir(dir)
+		files, err := os.ReadDir(dir)
 		if err != nil {
 			return err
 		}
-		dirs := []string{}
+		var dirs []string
 		for _, f := range files {
 			if f.IsDir() && strings.HasPrefix(f.Name(), lp) {
 				dirs = append(dirs, f.Name())
@@ -54,7 +54,7 @@ func (s *MultiCleaner) Serve() error {
 	if len(s.cleaners) == 0 {
 		return errors.Errorf("no cleaners for %v", s.p)
 	}
-	sv := []cs.Servable{}
+	var sv []cs.Servable
 	for _, c := range s.cleaners {
 		sv = append(sv, c)
 	}

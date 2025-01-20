@@ -1,7 +1,6 @@
 package services
 
 import (
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
@@ -55,8 +54,14 @@ func (s *Cleaner) getKeep(v string, total uint64) (keep uint64, err error) {
 }
 
 func (s *Cleaner) clean() error {
-	free := s.getFreeSpace()
-	total := s.getTotalSpace()
+	free, err := s.getFreeSpace()
+	if err != nil {
+		return err
+	}
+	total, err := s.getTotalSpace()
+	if err != nil {
+		return err
+	}
 	keep, err := s.getKeep(s.keep, total)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse keep")
@@ -81,7 +86,10 @@ func (s *Cleaner) clean() error {
 		if err != nil {
 			return err
 		}
-		free := s.getFreeSpace()
+		free, err := s.getFreeSpace()
+		if err != nil {
+			return err
+		}
 		if free > needToFreeUp {
 			return nil
 		}
@@ -90,37 +98,53 @@ func (s *Cleaner) clean() error {
 	return nil
 }
 
-func (s *Cleaner) getFreeSpace() uint64 {
+func (s *Cleaner) getFreeSpace() (uint64, error) {
 	var stat unix.Statfs_t
-	unix.Statfs(s.p, &stat)
-	return stat.Bavail * uint64(stat.Bsize)
+	err := unix.Statfs(s.p, &stat)
+	if err != nil {
+		return 0, err
+	}
+	return stat.Bavail * uint64(stat.Bsize), nil
 }
 
-func (s *Cleaner) getTotalSpace() uint64 {
+func (s *Cleaner) getTotalSpace() (uint64, error) {
 	var stat unix.Statfs_t
-	unix.Statfs(s.p, &stat)
-	return stat.Blocks * uint64(stat.Bsize)
+	err := unix.Statfs(s.p, &stat)
+	if err != nil {
+		return 0, err
+	}
+	return stat.Blocks * uint64(stat.Bsize), nil
 }
 
 func (s *Cleaner) drop(h string) error {
-	os.RemoveAll(s.p + "/" + h)
-	os.RemoveAll(s.p + "/" + h + ".touch")
+	err := os.RemoveAll(s.p + "/" + h)
+	if err != nil {
+		return err
+	}
+	err = os.RemoveAll(s.p + "/" + h + ".touch")
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *Cleaner) getStats() ([]StoreStat, error) {
-	res := []StoreStat{}
+	var res []StoreStat
 	ss := map[string]StoreStat{}
-	fs, err := ioutil.ReadDir(s.p)
+	fs, err := os.ReadDir(s.p)
 	if err != nil {
 		return nil, err
 	}
 	for _, f := range fs {
 		if !f.IsDir() && strings.HasSuffix(f.Name(), ".touch") {
 			h := strings.TrimSuffix(f.Name(), ".touch")
+			info, err := f.Info()
+			if err != nil {
+				return nil, err
+			}
 			ss[h] = StoreStat{
 				hash:  h,
-				touch: f.ModTime(),
+				touch: info.ModTime(),
 			}
 		} else if f.IsDir() {
 			h := f.Name()
