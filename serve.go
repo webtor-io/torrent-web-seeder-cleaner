@@ -24,16 +24,21 @@ func configureServe(c *cli.Command) {
 }
 
 func serve(c *cli.Context) error {
+	var servers []cs.Servable
 	// Setting Probe
 	probe := cs.NewProbe(c)
-	defer probe.Close()
+	if probe != nil {
+		servers = append(servers, probe)
+		defer probe.Close()
+	}
 
 	// Setting MultiCleaner
 	cleaner := s.NewMultiCleaner(c)
+	servers = append(servers, cleaner)
 	defer cleaner.Close()
 
 	// Setting Serve
-	serve := cs.NewServe(probe, cleaner)
+	serve := cs.NewServe(servers...)
 
 	// And SERVE!
 	err := serve.Serve()
