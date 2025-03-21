@@ -1,14 +1,14 @@
 module github.com/webtor-io/torrent-web-seeder-cleaner
 
-go 1.23.4
+go 1.24.1
 
 require (
-	code.cloudfoundry.org/bytefmt v0.25.0
+	code.cloudfoundry.org/bytefmt v0.33.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli v1.22.16
 	github.com/webtor-io/common-services v0.0.0-20250112153432-554128b56bd5
-	golang.org/x/sys v0.29.0
+	golang.org/x/sys v0.31.0
 )
 
 require (
@@ -22,21 +22,21 @@ require (
 	github.com/go-pg/zerochecker v0.2.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/klauspost/compress v1.17.11 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/prometheus/client_golang v1.20.5 // indirect
+	github.com/prometheus/client_golang v1.21.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.62.0 // indirect
-	github.com/prometheus/procfs v0.15.1 // indirect
-	github.com/redis/go-redis/v9 v9.7.0 // indirect
+	github.com/prometheus/common v0.63.0 // indirect
+	github.com/prometheus/procfs v0.16.0 // indirect
+	github.com/redis/go-redis/v9 v9.7.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/vmihailenco/bufpool v0.1.11 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser v0.1.2 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
-	google.golang.org/protobuf v1.36.3 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	mellium.im/sasl v0.3.2 // indirect
 )
