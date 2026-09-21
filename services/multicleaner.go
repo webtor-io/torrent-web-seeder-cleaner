@@ -17,10 +17,12 @@ type MultiCleaner struct {
 	keep     string
 	free     string
 	cleaners []*Cleaner
+	events   *CacheEvents
 }
 
-func NewMultiCleaner(c *cli.Context) *MultiCleaner {
+func NewMultiCleaner(c *cli.Context, events *CacheEvents) *MultiCleaner {
 	return &MultiCleaner{
+		events:   events,
 		p:        c.String(DataDirFlag),
 		keep:     c.String(CleanerKeepFreeFlag),
 		free:     c.String(CleanerFreeFlag),
@@ -46,10 +48,10 @@ func (s *MultiCleaner) Serve() error {
 			}
 		}
 		for _, d := range dirs {
-			s.cleaners = append(s.cleaners, NewCleaner(dir+"/"+d, s.keep, s.free))
+			s.cleaners = append(s.cleaners, NewCleaner(dir+"/"+d, s.keep, s.free, s.events))
 		}
 	} else {
-		s.cleaners = append(s.cleaners, NewCleaner(s.p, s.keep, s.free))
+		s.cleaners = append(s.cleaners, NewCleaner(s.p, s.keep, s.free, s.events))
 	}
 	if len(s.cleaners) == 0 {
 		return errors.Errorf("no cleaners for %v", s.p)

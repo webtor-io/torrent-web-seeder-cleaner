@@ -21,6 +21,7 @@ func makeServeCMD() cli.Command {
 func configureServe(c *cli.Command) {
 	c.Flags = cs.RegisterProbeFlags(c.Flags)
 	c.Flags = s.RegisterCleanerFlags(c.Flags)
+	c.Flags = s.RegisterCacheEventsFlags(c.Flags)
 }
 
 func serve(c *cli.Context) error {
@@ -33,7 +34,11 @@ func serve(c *cli.Context) error {
 	}
 
 	// Setting MultiCleaner
-	cleaner := s.NewMultiCleaner(c)
+	// Setting CacheEvents (off without NATS; see services/cache_events.go)
+	events := s.NewCacheEvents(c)
+	defer events.Close()
+
+	cleaner := s.NewMultiCleaner(c, events)
 	servers = append(servers, cleaner)
 	defer cleaner.Close()
 

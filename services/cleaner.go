@@ -20,6 +20,7 @@ type Cleaner struct {
 	cleaning bool
 	keep     string
 	free     string
+	events   *CacheEvents // nil: nothing is published
 }
 
 type StoreStat struct {
@@ -27,11 +28,12 @@ type StoreStat struct {
 	hash  string
 }
 
-func NewCleaner(p string, keep string, free string) *Cleaner {
+func NewCleaner(p string, keep string, free string, events *CacheEvents) *Cleaner {
 	return &Cleaner{
-		p:    p,
-		keep: keep,
-		free: free,
+		p:      p,
+		keep:   keep,
+		free:   free,
+		events: events,
 	}
 }
 
@@ -86,6 +88,9 @@ func (s *Cleaner) clean() error {
 		if err != nil {
 			return err
 		}
+		// After the removal, not before: a drop that failed left the
+		// content where it was.
+		s.events.Dropped(v.hash)
 		free, err := s.getFreeSpace()
 		if err != nil {
 			return err
