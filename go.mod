@@ -1,6 +1,6 @@
 module github.com/webtor-io/torrent-web-seeder-cleaner
 
-go 1.25
+go 1.25.0
 
 require (
 	code.cloudfoundry.org/bytefmt v0.33.0
@@ -9,7 +9,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli v1.22.16
 	github.com/webtor-io/common-services v0.0.0-20250112153432-554128b56bd5
-	golang.org/x/sys v0.32.0
+	golang.org/x/sys v0.45.0
 )
 
 require (
@@ -39,7 +39,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser v0.1.2 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	mellium.im/sasl v0.3.2 // indirect
 )
