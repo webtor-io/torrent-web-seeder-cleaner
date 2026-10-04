@@ -135,3 +135,28 @@ func TestCleanDropsATouchWithoutADir(t *testing.T) {
 		t.Error("the lone .touch is still there, or its dir came back")
 	}
 }
+
+// The shard is shared: s3-cache keeps its chunks in <shard>/s3-cache and
+// evicts them itself, and ext4 keeps lost+found. Without a .touch both used
+// to sort first and go before any torrent; with one, a name that is not a
+// hash is no more the cleaner's.
+func TestCleanLeavesWhatIsNotATorrent(t *testing.T) {
+	dir := t.TempDir()
+	mkTorrent(t, dir, hOld, 48*time.Hour)
+	mkTorrent(t, dir, "lost+found", 72*time.Hour)
+	if err := os.MkdirAll(filepath.Join(dir, "s3-cache", "ab"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := cleanAll(t, dir); !slices.Equal(got, []string{hOld}) {
+		t.Errorf("announced %v", got)
+	}
+	for _, d := range []string{"s3-cache/ab", "lost+found/d/f"} {
+		if !exists(t, filepath.Join(dir, d)) {
+			t.Errorf("%s was dropped", d)
+		}
+	}
+	if exists(t, filepath.Join(dir, hOld)) {
+		t.Error("the torrent is still there")
+	}
+}

@@ -37,7 +37,7 @@ func TestCleanAnnouncesWhatItDropped(t *testing.T) {
 		}
 	}
 	mk(hOld, 48*time.Hour)
-	mk("lost+found", 72*time.Hour) // oldest of all, dropped first -- and not a torrent
+	mk("lost+found", 72*time.Hour) // oldest of all, but not a torrent: left alone
 	mk(hNew, time.Minute)
 
 	rec := &recPublisher{}

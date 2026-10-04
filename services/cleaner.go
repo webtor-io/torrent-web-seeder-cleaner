@@ -186,9 +186,17 @@ func (s *Cleaner) getStats() ([]StoreStat, error) {
 	if err != nil {
 		return nil, err
 	}
+	// The shard is shared, and only what is named by a hash is the cleaner's
+	// to drop: torrents (the seeder names them by infohash) and transcoder
+	// output (by the sha1 of the source). s3-cache keeps its chunks in
+	// <shard>/s3-cache and evicts them itself; without a .touch they used to
+	// go first, ~120 times a day, ~1 TB of cache. ext4 keeps lost+found.
 	for _, f := range fs {
 		if !f.IsDir() && strings.HasSuffix(f.Name(), ".touch") {
 			h := strings.TrimSuffix(f.Name(), ".touch")
+			if !infohashRe.MatchString(h) {
+				continue
+			}
 			info, err := f.Info()
 			if err != nil {
 				return nil, err
@@ -197,7 +205,7 @@ func (s *Cleaner) getStats() ([]StoreStat, error) {
 				hash:  h,
 				touch: info.ModTime(),
 			}
-		} else if f.IsDir() {
+		} else if f.IsDir() && infohashRe.MatchString(f.Name()) {
 			h := f.Name()
 			if _, ok := ss[h]; !ok {
 				ss[h] = StoreStat{
