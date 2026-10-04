@@ -2,6 +2,7 @@ package services
 
 import (
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -83,11 +84,15 @@ func (s *Cleaner) clean() error {
 		return err
 	}
 	for _, v := range stats {
-		log.Infof("drop hash=%v touch=%v", v.hash, v.touch.String())
-		err := s.drop(v.hash)
+		dropped, err := s.drop(v.hash)
 		if err != nil {
 			return err
 		}
+		if !dropped {
+			log.Infof("skip hash=%v touch=%v: a seeder holds it", v.hash, v.touch.String())
+			continue
+		}
+		log.Infof("drop hash=%v touch=%v", v.hash, v.touch.String())
 		// After the removal, not before: a drop that failed left the
 		// content where it was.
 		s.events.Dropped(v.hash)
@@ -121,16 +126,57 @@ func (s *Cleaner) getTotalSpace() (uint64, error) {
 	return stat.Blocks * uint64(stat.Bsize), nil
 }
 
-func (s *Cleaner) drop(h string) error {
-	err := os.RemoveAll(s.p + "/" + h)
-	if err != nil {
-		return err
+// drop removes the directory of h and its .touch, and reports whether it did:
+// not while a seeder pod holds the directory.
+//
+// Every pod on the node that has the torrent open holds <dir>/.lock shared
+// (torrent-web-seeder dir_lock.go). Removing the directory under it unlinks
+// files the pod still trusts: a file it opens again comes back sparse while
+// its completion says the pieces are there, and the next pod locks a new
+// .lock, so the two no longer keep each other from punching holes. Nor does
+// it free the space while the pod has the files open. 36 of 13,680 drops on
+// 2026-10-04 hit a torrent a pod of the node had loaded.
+//
+// So the lock is taken exclusive, without waiting, and held until the
+// directory is gone. The eviction gate comes first, as in the seeder's
+// whileAlone: on Linux a pod whose upgrade failed holds nothing on .lock until
+// it takes it shared again, and only the gate covers that gap. The gate is
+// not created: that it exists tells the seeder's cache path the torrent
+// evicts.
+func (s *Cleaner) drop(h string) (bool, error) {
+	dir := filepath.Join(s.p, h)
+	gate, err := os.Open(filepath.Join(dir, ".evict.lock"))
+	if err == nil {
+		defer gate.Close()
+		if ok, err := tryLock(gate); !ok {
+			return false, err
+		}
+	} else if !os.IsNotExist(err) {
+		return false, err
 	}
-	err = os.RemoveAll(s.p + "/" + h + ".touch")
-	if err != nil {
-		return err
+	lock, err := os.OpenFile(filepath.Join(dir, ".lock"), os.O_RDONLY|os.O_CREATE, 0o644)
+	if err == nil {
+		defer lock.Close()
+		if ok, err := tryLock(lock); !ok {
+			return false, err
+		}
+		if err := os.RemoveAll(dir); err != nil {
+			return false, err
+		}
+	} else if !os.IsNotExist(err) { // not there: only the .touch is left
+		return false, err
 	}
-	return nil
+	return true, os.RemoveAll(dir + ".touch")
+}
+
+// tryLock takes f exclusive without waiting; false with no error: someone
+// holds it.
+func tryLock(f *os.File) (bool, error) {
+	err := unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB)
+	if err == unix.EWOULDBLOCK {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 func (s *Cleaner) getStats() ([]StoreStat, error) {
