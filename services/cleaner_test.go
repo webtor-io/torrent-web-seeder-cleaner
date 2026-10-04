@@ -119,6 +119,44 @@ func TestCleanSkipsADirInAnEviction(t *testing.T) {
 	}
 }
 
+// Both locks stay exclusive until the directory is gone. A pod that took
+// .lock shared in between would open the .torrent.db of files about to be
+// unlinked, get them back empty, and serve zeros for the pieces its
+// completion says it has.
+func TestCleanHoldsTheDirWhileItRemovesIt(t *testing.T) {
+	dir := t.TempDir()
+	mkTorrent(t, dir, hOld, 48*time.Hour)
+	for _, name := range []string{".lock", ".evict.lock"} {
+		if err := os.WriteFile(filepath.Join(dir, hOld, name), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var removed []string
+	t.Cleanup(func() { removeAll = os.RemoveAll })
+	removeAll = func(path string) error {
+		removed = append(removed, path)
+		for _, name := range []string{".lock", ".evict.lock"} {
+			f, err := os.Open(filepath.Join(path, name))
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = unix.Flock(int(f.Fd()), unix.LOCK_SH|unix.LOCK_NB)
+			_ = f.Close()
+			if err != unix.EWOULDBLOCK {
+				t.Errorf("%s is not held exclusive while the directory is removed: flock SH = %v", name, err)
+			}
+		}
+		return os.RemoveAll(path)
+	}
+
+	if got := cleanAll(t, dir); !slices.Equal(got, []string{hOld}) {
+		t.Errorf("announced %v", got)
+	}
+	if !slices.Equal(removed, []string{filepath.Join(dir, hOld)}) {
+		t.Errorf("removed %v, want only the torrent's directory", removed)
+	}
+}
+
 // A .touch whose directory is gone is removed, and the pass goes on.
 func TestCleanDropsATouchWithoutADir(t *testing.T) {
 	dir := t.TempDir()

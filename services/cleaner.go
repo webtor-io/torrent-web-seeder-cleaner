@@ -160,7 +160,7 @@ func (s *Cleaner) drop(h string) (bool, error) {
 		if ok, err := tryLock(lock); !ok {
 			return false, err
 		}
-		if err := os.RemoveAll(dir); err != nil {
+		if err := removeAll(dir); err != nil {
 			return false, err
 		}
 	} else if !os.IsNotExist(err) { // not there: only the .touch is left
@@ -168,6 +168,10 @@ func (s *Cleaner) drop(h string) (bool, error) {
 	}
 	return true, os.RemoveAll(dir + ".touch")
 }
+
+// removeAll removes the directory in drop; a test looks at the locks from
+// inside it.
+var removeAll = os.RemoveAll
 
 // tryLock takes f exclusive without waiting; false with no error: someone
 // holds it.
