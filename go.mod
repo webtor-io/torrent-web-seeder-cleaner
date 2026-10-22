@@ -1,6 +1,6 @@
 module github.com/webtor-io/torrent-web-seeder-cleaner
 
-go 1.25
+go 1.27
 
 require (
 	code.cloudfoundry.org/bytefmt v0.33.0
